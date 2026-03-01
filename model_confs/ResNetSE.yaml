@@ -1,0 +1,43 @@
+output_dir: "experiments/exp1"
+trained_epochs: 0
+
+data:
+    data_dir: "data"
+    train_file: "train"
+    val_file: None
+    test_file: "test"
+    batch_size: 32
+
+data_agumentation:
+    type: "none"
+
+model:
+    type: "models.ResNetSE"
+    params:
+        num_classes: 3
+
+
+optimizer:
+    type: "Adam"
+    params:
+        lr : 0.01
+
+
+scheduler:
+    type: "ReduceLROnPlateau"
+    params:
+        mode: "min"
+        factor: 0.5
+        patience: 5
+        min_lr: 1.0e-6
+
+earlyStop:
+    type: "utils.EarlyStopping"
+    params: 
+        patience: 7
+        min_delta: 0.0
+
+loss:
+    type: "utils.LabelSmoothingCorssEntropyLoss"
+    params:
+        alpha: 0.1

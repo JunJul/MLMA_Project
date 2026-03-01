@@ -1,0 +1,41 @@
+best_epoch: 28
+data:
+  batch_size: 32
+  data_dir: data
+  test_file: test
+  train_file: train
+  val_file: None
+data_agumentation:
+  type: none
+date: '20260301'
+earlyStop:
+  params:
+    min_delta: 0.0
+    patience: 7
+  type: utils.EarlyStopping
+loss:
+  params:
+    alpha: 0.1
+  type: utils.LabelSmoothingCorssEntropyLoss
+model:
+  params:
+    layers:
+    - 2
+    - 2
+    - 2
+    - 2
+    num_classes: 3
+  type: models.ResNetCBAM
+optimizer:
+  params:
+    lr: 0.01
+  type: Adam
+output_dir: experiments/exp1
+scheduler:
+  params:
+    factor: 0.5
+    min_lr: 1.0e-06
+    mode: min
+    patience: 5
+  type: ReduceLROnPlateau
+trained_epochs: 36

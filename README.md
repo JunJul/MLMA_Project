@@ -42,15 +42,9 @@ Standard models give a single probability (e.g., "80% Pneumonia"). But is that 8
 - The Uncertainity Warning (e.g., When high uncertainty detected, specialists are needed)
 
 ### Pretrained Models
-- Without VAE
-    1. [ResNet50]()
-    2. [ResNet-SE]()
-    3. [ResNet-CBAM]()
+- [Models Without VAE](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
 
-- With VAE
-    1. [ResNet50]()
-    2. [ResNet-SE]()
-    3. [ResNet-CBAM]()
+- Models With VAE
 
 ### Summary
 

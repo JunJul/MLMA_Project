@@ -27,7 +27,7 @@ SYNTHETIC_DIR = os.path.join(PROJECT_ROOT, "data_basic_vae")
 
 IMG_SIZE = 128        # size of input images 
 BATCH_SIZE = 64       # number of images in one training batch
-EPOCHS = 3           # number of training epochs
+EPOCHS = 30           # number of training epochs
 LR = 1e-3             # learning rate for optimizer
 LATENT_DIM = 128      # dimension of latent vector in VAE
 

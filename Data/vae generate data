@@ -1,0 +1,365 @@
+import os
+import random
+from collections import Counter
+from pathlib import Path
+
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torchvision.utils import save_image
+import numpy as np
+
+
+# 1. HYPERPARAMETERS
+
+try:
+    PROJECT_ROOT = Path(__file__).resolve().parent
+except NameError:
+    PROJECT_ROOT = Path.cwd()
+
+DATA_ROOT = str(PROJECT_ROOT / "data" / "train")
+
+OUT_DIR = os.path.join(PROJECT_ROOT, "basic_vae_outputs")
+SYNTHETIC_DIR = os.path.join(PROJECT_ROOT, "data_basic_vae")
+
+
+IMG_SIZE = 128        # size of input images 
+BATCH_SIZE = 64       # number of images in one training batch
+EPOCHS = 30           # number of training epochs
+LR = 1e-3             # learning rate for optimizer
+LATENT_DIM = 128      # dimension of latent vector in VAE
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"   # use GPU if available
+
+
+
+SEED = 42                 # random seed for reproducibility
+SAVE_SYNTHETIC_IMAGES = True   # whether to save generated images
+
+
+# 2. FUNCTIONS & CLASSES
+
+def seed_everything(seed=42):
+    """Set random seed for reproducibility"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+class BasicVAE(nn.Module):
+    """VAE model for image generation"""
+
+    def __init__(self, img_size=128, latent_dim=128, in_channels=1):
+        super(BasicVAE, self).__init__()
+
+        self.h = self.w = img_size // 16
+        self.enc_channels = 256
+        self.flatten_dim = self.enc_channels * self.h * self.w
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(in_channels, 32, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.Conv2d(32, 64, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.Conv2d(64, 128, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.Conv2d(128, 256, 4, 2, 1),
+            nn.ReLU()
+        )
+
+        self.fc_mu = nn.Linear(self.flatten_dim, latent_dim)
+        self.fc_logvar = nn.Linear(self.flatten_dim, latent_dim)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, self.flatten_dim),
+            nn.ReLU(),
+
+            nn.Unflatten(1, (256, self.h, self.w)),
+
+            nn.ConvTranspose2d(256, 128, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.ConvTranspose2d(128, 64, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.ConvTranspose2d(64, 32, 4, 2, 1),
+            nn.ReLU(),
+
+            nn.ConvTranspose2d(32, 1, 4, 2, 1),
+            nn.Sigmoid()
+        )
+
+    def encode(self, x):
+        """Encode image to latent mean and variance"""
+        h = self.encoder(x)
+        h = h.view(x.size(0), -1)
+
+        mu = self.fc_mu(h)
+        logvar = self.fc_logvar(h)
+
+        return mu, logvar
+
+    def reparameterize(self, mu, logvar):
+        """Sample latent vector using reparameterization trick"""
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+
+        return mu + eps * std
+
+    def decode(self, z):
+        """Decode latent vector to image"""
+        return self.decoder(z)
+
+    def forward(self, x):
+        """Full VAE forward pass"""
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+
+        return self.decode(z), mu, logvar
+
+
+def vae_loss(recon_x, x, mu, logvar):
+    """Calculate reconstruction + KL loss"""
+    recon_loss = nn.MSELoss()(recon_x, x)
+
+    kld = -0.5 * torch.sum(
+        1 + logvar - mu.pow(2) - logvar.exp()
+    )
+
+    return recon_loss + kld / x.size(0)
+
+
+def train_vae(model, loader):
+    """Train VAE model"""
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+
+    model.train()
+
+    for epoch in range(EPOCHS):
+
+        total_loss = 0
+
+        for x, _ in loader:
+
+            x = x.to(DEVICE)
+
+            optimizer.zero_grad()
+
+            recon, mu, logvar = model(x)
+
+            loss = vae_loss(recon, x, mu, logvar)
+
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{EPOCHS} Loss: {total_loss:.4f}")
+
+
+def load_dataset():
+    """Load image dataset"""
+
+    transform = transforms.Compose([
+        transforms.Grayscale(1),
+        transforms.Resize((IMG_SIZE, IMG_SIZE)),
+        transforms.ToTensor()
+    ])
+
+    dataset = ImageFolder(DATA_ROOT, transform=transform)
+
+    return dataset
+
+
+class TensorLabelDataset(Dataset):
+    """Dataset wrapper for generated tensors"""
+
+    def __init__(self, tensors, labels):
+
+        self.tensors = tensors
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+
+        return self.tensors[idx], self.labels[idx]
+
+def generate_synthetic_minority(
+        model,
+        dataset,
+        minority_class_id,
+        num_synthetic,
+        idx_to_class):
+    """Generate synthetic images using latent interpolation"""
+
+    model.eval()
+
+    indices = [
+        i for i in range(len(dataset))
+        if dataset.targets[i] == minority_class_id
+    ]
+
+    subset = torch.utils.data.Subset(dataset, indices)
+
+    loader = DataLoader(subset, batch_size=BATCH_SIZE)
+
+    latent_vectors = []
+
+    with torch.no_grad():
+
+        for x, _ in loader:
+
+            x = x.to(DEVICE)
+
+            mu, logvar = model.encode(x)
+
+            z = model.reparameterize(mu, logvar)
+
+            latent_vectors.append(z.cpu())
+
+    latent_vectors = torch.cat(latent_vectors)
+
+
+    idx1 = torch.randint(0, latent_vectors.size(0), (num_synthetic,))
+    idx2 = torch.randint(0, latent_vectors.size(0), (num_synthetic,))
+
+    z1 = latent_vectors[idx1]
+    z2 = latent_vectors[idx2]
+
+    alpha = torch.rand(num_synthetic, 1)
+
+    latent_samples = (1 - alpha) * z1 + alpha * z2
+
+    latent_samples = latent_samples.to(DEVICE)
+
+
+    generated = []
+
+    with torch.no_grad():
+
+        for start in range(0, num_synthetic, BATCH_SIZE):
+
+            end = min(start + BATCH_SIZE, num_synthetic)
+
+            z = latent_samples[start:end]
+
+            x_hat = model.decode(z)
+
+            generated.append(x_hat.cpu())
+
+    synthetic_x = torch.cat(generated)
+
+    synthetic_y = torch.full(
+        (synthetic_x.size(0),),
+        minority_class_id
+    )
+
+
+    if SAVE_SYNTHETIC_IMAGES:
+
+        class_name = idx_to_class[minority_class_id]
+
+        out_dir = os.path.join(SYNTHETIC_DIR, class_name)
+
+        os.makedirs(out_dir, exist_ok=True)
+
+        for i in range(synthetic_x.size(0)):
+
+            save_image(
+                synthetic_x[i],
+                os.path.join(out_dir, f"syn_{i:05d}.png")
+            )
+
+    return synthetic_x, synthetic_y
+
+# 3. MAIN EXECUTION
+
+def main():
+
+    seed_everything()
+
+    dataset = load_dataset()
+
+    class_to_idx = dataset.class_to_idx
+    idx_to_class = {v: k for k, v in class_to_idx.items()}
+
+    counts = Counter(dataset.targets)
+
+    print("Class counts:", counts)
+
+    max_count = max(counts.values())
+
+    train_loader = DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True
+    )
+
+    model = BasicVAE(
+        img_size=IMG_SIZE,
+        latent_dim=LATENT_DIM
+    ).to(DEVICE)
+
+    print("Training VAE...")
+    train_vae(model, train_loader)
+
+    torch.save(
+        model.state_dict(),
+        os.path.join(OUT_DIR, "basic_vae_best.pt")
+    )
+
+
+    minority_ids = [cid for cid in counts if counts[cid] < max_count]
+    all_syn_x, all_syn_y = [], []
+
+    for class_id in minority_ids:
+        need = max_count - counts[class_id]
+        print("Minority class:", idx_to_class[class_id], "need generate:", need)
+        syn_x, syn_y = generate_synthetic_minority(
+            model,
+            dataset,
+            class_id,
+            need,
+            idx_to_class
+        )
+        all_syn_x.append(syn_x)
+        all_syn_y.append(syn_y)
+
+    if all_syn_x:
+        all_syn_x = torch.cat(all_syn_x)
+        all_syn_y = torch.cat(all_syn_y)
+        synthetic_dataset = TensorLabelDataset(all_syn_x, all_syn_y)
+        balanced_dataset = ConcatDataset([dataset, synthetic_dataset])
+    else:
+        balanced_dataset = dataset
+
+    balanced_loader = DataLoader(
+        balanced_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True
+    )
+
+    print("Balanced dataset size:", len(balanced_dataset))
+
+    return balanced_loader
+
+
+# RUN
+
+if __name__ == "__main__":
+
+    loader = main()
+
+    x, y = next(iter(loader))
+
+    print("Batch shape:", x.shape)
+    print("Label distribution:", Counter(y.tolist()))

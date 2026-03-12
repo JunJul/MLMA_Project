@@ -72,7 +72,7 @@ with col2:
     st.subheader("Class probabilities")
 
     for i, name in enumerate(CLASS_NAMES):
-    prob = float(probs[i])
+        prob = float(probs[i])
 
         col1, col2 = st.columns([3,1])
     

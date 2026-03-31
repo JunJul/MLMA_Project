@@ -1,15 +1,27 @@
-# Chest X-ray Image (COVID19, PNEUMONIA, and NORMAL) Classification
+# CheXpert Challenge
 
 ### Data
-kaggle: https://www.kaggle.com/datasets/alsaniipe/chest-x-ray-image/data
+kaggle: https://www.kaggle.com/datasets/ashery/chexpert
+
+(Note: This is a subet of the original cheXpert dataset from standford. The full dataset can be found at: https://aimi.stanford.edu/datasets/chexpert-chest-x-rays)
+```
+CHEXPERT_CLASSES = [
+    'No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Opacity',
+    'Lung Lesion', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis',
+    'Pneumothorax', 'Pleural Effusion', 'Pleural Other', 'Fracture', 'Support Devices'
+]
+```
 
 ### Prerequisites
+```
+pip install -r requirements.txt
+```
 
 ### Project
 
 #### Data Agumentation
-1. [VAE](https://ieeexplore.ieee.org/document/8285168)
-    - Code: https://towardsdatascience.com/the-next-ai-revolution-a-tutorial-using-vaes-to-generate-high-quality-synthetic-data/
+1. [CVAE](https://arxiv.org/abs/1908.09008#:~:text=Prediction%20of%20future%20states%20of,results%20across%20different%20evaluation%20metrics.)
+    - Code: https://medium.com/data-science/conditional-variational-autoencoders-with-learnable-conditional-embeddings-e22ee5359a2a
     - Purpose:
         - The Complexity: Implement a VQ-VAE (Vector Quantized-VAE) or a Conditional VAE (C-VAE). This allows you to generate images specific to a class (e.g., "Generate a lung with Pneumonia") rather than random samples.
         - The Validation: Your VAE specialist shouldn't just generate images; they must prove they are statistically similar to the real ones using FID (Fréchet Inception Distance) or t-SNE plots.
@@ -42,10 +54,26 @@ Standard models give a single probability (e.g., "80% Pneumonia"). But is that 8
 - The Confidence Score (Enemsble Model)
 - The Uncertainity Warning (e.g., When high uncertainty detected, specialists are needed)
 
-### Pretrained Models
-- [Models Without VAE](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
+### Training & Testing
+- Training:
+```
+# Training a model at first time or continue to train a model
+python .\trainModels.py -c .\model_confs\ResNetCBAM.yaml -p U-Ones
+```
 
-- Models With VAE
+- Testing:
+```
+# Automatically load your previsouly trained model
+python .\testModels.py -c .\model_confs\ResNetCBAM.yaml -p U-Ones
+```
+
+You can replace -c (.\model_confs\Your Model) and -p (Your Policy)
+
+### Pretrained Models
+
+- [Models Without CVAE Data](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
+
+- [Models With CVAE Data](https://drive.google.com/drive/folders/1Fer3AeZOcyfBldkGkmzNcMQp1akBqKlm?usp=drive_link)
 
 ### Summary
 

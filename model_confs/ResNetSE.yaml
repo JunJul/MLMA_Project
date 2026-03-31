@@ -1,11 +1,12 @@
 output_dir: "experiments/exp1"
 trained_epochs: 0
+max_epochs: 50
 
 data:
-    data_dir: "data"
-    train_file: "train"
-    val_file: None
-    test_file: "test"
+    data_dir: "CheXpert-v1.0-small"
+    train_file: "train.csv"
+    val_file: “valid.csv”
+    test_file: "valid.csv"
     batch_size: 32
 
 data_agumentation:
@@ -14,7 +15,7 @@ data_agumentation:
 model:
     type: "models.ResNetSE"
     params:
-        num_classes: 3
+        num_classes: 14
 
 
 optimizer:
@@ -38,6 +39,6 @@ earlyStop:
         min_delta: 0.0
 
 loss:
-    type: "utils.LabelSmoothingCorssEntropyLoss"
-    params:
-        alpha: 0.1
+  type: "losses.CheXpertLoss"
+  params:
+    policy: "U-Ones"

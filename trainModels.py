@@ -1,24 +1,28 @@
+import argparse
 from pipeline import Pipeline
-from metrics import classification_result
 
-
-def main(conf_dir):
-    # train, validation, and test
-    model = Pipeline(conf_dir)
-    # model.train()
-    preds, _ = model.predict()
-
-    # get true label
-    encoder = model.test_loader.dataset.encoder
-    y_true = [encoder[label] for label in model.test_loader.dataset.df["class"]]
-
-    # check performance of the model
-    model_name = conf_dir.split('/')[-1].replace('.yaml', '')
-    saved_path = model.experiment_dir
-    classification_result(y_true, preds, model_name, saved_path)
-    pass
-
-
+def main(conf_dir, policy):
+    model = Pipeline(conf_dir, policy=policy)
+    model.train()
 
 if __name__ == "__main__":
-    main("model_confs/ResNetSE.yaml")
+    parser = argparse.ArgumentParser(description="Train a multi-label medical image classifier.")
+    
+    parser.add_argument(
+        "-c", "--config", 
+        type=str, 
+        default="model_confs/ResNetSE.yaml",  
+        help="Path to the model configuration YAML file."
+    )
+    
+    # NEW: Add the policy override argument
+    parser.add_argument(
+        "-p", "--policy",
+        type=str,
+        choices=["U-Ones", "U-Zeroes", "U-Smooth"],
+        default=None,
+        help="Override the CheXpert loss policy (U-Ones, U-Zeroes, or U-Smooth)."
+    )
+    
+    args = parser.parse_args()
+    main(args.config, args.policy)

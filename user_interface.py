@@ -213,7 +213,6 @@ else:
 
         try:
             cam_img, probs_cam, pred_cam = gradcam_overlay(model, x)
-            # Make heatmap smaller too
             st.image(cam_img, caption=f"Heatmap overlay (pred: {CLASS_NAMES[int(pred_cam)]})", width=img_w)
         except Exception as e:
             st.image(img, caption="Heatmap error (showing input image).", width=img_w)

@@ -29,28 +29,35 @@ from sklearn.model_selection import train_test_split
 """
 
 class Pipeline():
-    def __init__(self, config_path):
+    def __init__(self, config_path, policy="U-Ones"):
         self.config = self._load_config(config_path)
+
+        if policy is not None:
+            if "params" not in self.config["loss"]:
+                self.config["loss"]["params"] = {}
+            self.config["loss"]["params"]["policy"] = policy
+
         self.experiment_dir = self._create_experiment_dir()
         self.history = {"train_loss":[], "val_loss":[]}
         self._setup()
         
     
     def _load_config(self, config_path):
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     
     def _create_experiment_dir(self):
         # model name and loss function
         model_name = self.config.get("model", {}).get("type", "unknown").split('.')[-1]
         loss_name = self.config.get("loss", {}).get("type", "unknown").split('.')[-1]
+        policy_name = self.config.get("loss", {}).get("params", {}).get("policy", "unknown")
 
         # time when you create this folder
         timestamp = time.strftime("%Y%m%d")
         self.config["date"] = timestamp
 
         # experiment directory and sub directories
-        exp_dir = Path(self.config.get("output_dir", "experiments")) / f"{model_name}_{loss_name}"
+        exp_dir = Path(self.config.get("output_dir", "experiments")) / f"{model_name}_{loss_name}_{policy_name}"
         model_dir = exp_dir / "models"
         config_path = exp_dir / "config.yaml"
         history_path = exp_dir / "history.json"
@@ -63,7 +70,7 @@ class Pipeline():
             os.makedirs(exp_dir, exist_ok=True)
             os.makedirs(model_dir, exist_ok=True)
 
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(self.config, f)
                 pass
 
@@ -71,13 +78,13 @@ class Pipeline():
 
     def _get_config_history(self, config_path, history_path):
     # load existing config
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
             pass
         
         # load existing hsitory
         if history_path.exists():
-            with open(history_path, "r") as f:
+            with open(history_path, "r", encoding="utf-8") as f:
                 self.history = json.load(f)
 
                 pass
@@ -106,6 +113,10 @@ class Pipeline():
 
         # loss
         self.loss_fn = self._get_loss()
+        
+        # NEW: Ensure the loss function is also moved to the GPU!
+        if isinstance(self.loss_fn, torch.nn.Module):
+            self.loss_fn = self.loss_fn.to(self.device)
 
         # optimizer
         optim_config = self.config["optimizer"]
@@ -126,7 +137,8 @@ class Pipeline():
         
         # if there is a previosuly trained model
         model_name = self.config["model"]["type"].split('.')[-1]
-        trained_model_path = self.experiment_dir / "models" / f"{model_name}_epoch_{self.best_epoch}.pt"
+        policy = self.config.get("loss", {}).get("params", {}).get("policy", "unknown")
+        trained_model_path = self.experiment_dir / "models" / f"{model_name}_{policy}_epoch_{self.best_epoch}.pt"
         if trained_model_path.exists():
             print(f"Loading from {trained_model_path}")
             self.load_model(trained_model_path)
@@ -171,13 +183,50 @@ class Pipeline():
         val_path = data_conf["val_file"]
         test_path = data_conf["test_file"]
 
-        train_df = load_image(os.path.join(data_dir, train_path))
+        def _resolve_csv_path(base_dir, fname):
+            # Build candidate path
+            candidate = os.path.join(base_dir, fname)
+
+            # If it's a directory, try common csv names inside
+            if os.path.isdir(candidate):
+                for try_name in ("train.csv", "valid.csv", "test.csv", "train", "valid", "test"):
+                    p = os.path.join(candidate, try_name)
+                    if os.path.isfile(p):
+                        return p
+
+            # If candidate is a file already, return it
+            if os.path.isfile(candidate):
+                return candidate
+
+            # Try adding .csv extension
+            if not candidate.lower().endswith('.csv'):
+                candidate_csv = candidate + '.csv'
+                if os.path.isfile(candidate_csv):
+                    return candidate_csv
+
+            # Try stripping smart quotes and whitespace
+            stripped = fname.strip('\u201C\u201D\"\'\n\r ')
+            candidate2 = os.path.join(base_dir, stripped)
+            if os.path.isfile(candidate2):
+                return candidate2
+            if not candidate2.lower().endswith('.csv'):
+                candidate2_csv = candidate2 + '.csv'
+                if os.path.isfile(candidate2_csv):
+                    return candidate2_csv
+
+            # Fallback to original join (may raise clearer error downstream)
+            return os.path.join(base_dir, fname)
+
+        train_csv = _resolve_csv_path(data_dir, train_path)
+        train_df = load_image(train_csv)
         if val_path != "None":
-            val_df = load_image(os.path.join(data_dir, val_path))
+            val_csv = _resolve_csv_path(data_dir, val_path)
+            val_df = load_image(val_csv)
         else:
-            train_df, val_df = train_test_split(train_df, test_size=0.2, stratify=train_df["class"])
+            train_df, val_df = train_test_split(train_df, test_size=0.2, stratify=train_df.get("class", None))
         
-        test_df = load_image(os.path.join(data_dir, test_path))
+        test_csv = _resolve_csv_path(data_dir, test_path)
+        test_df = load_image(test_csv)
 
         train_dt, val_dt, test_dt = ImageDataset(train_df), ImageDataset(val_df), ImageDataset(test_df)
 
@@ -195,8 +244,10 @@ class Pipeline():
         print(f"Training {model_name}, with parameters:")
         print(self.config["model"].get("params", None))
 
-        # train the model
-        while True:
+        max_epochs = self.config.get("max_epochs", 50)
+
+        # train the modelf
+        while self.trained_epochs < max_epochs:
             # clear the cahce
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -224,7 +275,8 @@ class Pipeline():
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 self.best_epoch = self.trained_epochs
-                self._save_model(self.experiment_dir / "models" / f"{model_name}_epoch_{self.best_epoch}.pt")
+                policy = self.config['loss']['params']['policy']
+                self._save_model(self.experiment_dir / "models" / f"{model_name}_{policy}_epoch_{self.best_epoch}.pt")
                 self.config["best_epoch"] = self.best_epoch
 
             self.trained_epochs += 1
@@ -242,13 +294,13 @@ class Pipeline():
         return self.model, self.history
     
     def _save_history(self):
-        with open(self.experiment_dir / "history.json", "w") as f:
+        with open(self.experiment_dir / "history.json", "w", encoding="utf-8") as f:
             json.dump(self.history, f, indent=4)
             pass
         pass
 
     def _save_yaml(self):
-        with open(self.experiment_dir / "config.yaml", "w") as f:
+        with open(self.experiment_dir / "config.yaml", "w", encoding="utf-8") as f:
             yaml.dump(self.config, f)
             pass
         pass
@@ -264,7 +316,7 @@ class Pipeline():
         pass
 
     def load_model(self, path, model=None):
-        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        ckpt = torch.load(path, map_location=self.device, weights_only=False)
         if model is not None:
             model.load_state_dict(ckpt["model_state_dict"])
         else:
@@ -335,7 +387,9 @@ class Pipeline():
         running_loss = 0.0
 
         test_len = len(self.test_loader)
-        preds = []
+        
+        all_probs = []
+        all_targets = []
 
         with torch.no_grad():
             for _, data_point in tqdm(enumerate(self.test_loader), total=test_len):
@@ -346,8 +400,13 @@ class Pipeline():
                 
                 # forward
                 logits = self.model(img)
-                preds.extend(torch.argmax(logits, dim=1).tolist())
-
+                
+                # Multi-label probabilities
+                probs = torch.sigmoid(logits)
+                
+                # Store data on CPU
+                all_probs.append(probs.cpu())
+                all_targets.append(y.cpu())
 
                 # loss
                 loss = self._criterion(logits, y)
@@ -356,4 +415,8 @@ class Pipeline():
                 pass
 
         avg_loss = running_loss / len(self.test_loader)
-        return preds, avg_loss
+        
+        all_probs_tensor = torch.cat(all_probs, dim=0)
+        all_targets_tensor = torch.cat(all_targets, dim=0)
+        
+        return all_targets_tensor.numpy(), all_probs_tensor.numpy(), avg_loss

@@ -1,11 +1,12 @@
 output_dir: "experiments/exp1"
 trained_epochs: 0
+max_epochs: 50
 
 data:
-    data_dir: "data"
-    train_file: "train"
-    val_file: None
-    test_file: "test"
+    data_dir: "CheXpert-v1.0-small"
+    train_file: "train.csv" 
+    val_file: "valid.csv" 
+    test_file: "valid.csv"
     batch_size: 32
 
 data_agumentation:
@@ -15,13 +16,12 @@ model:
     type: "models.ResNetCBAM"
     params:
         layers: [2, 2, 2, 2]
-        num_classes: 3
+        num_classes: 14         # Perfect!
 
 optimizer:
     type: "Adam"
     params:
         lr : 0.01
-
 
 scheduler:
     type: "ReduceLROnPlateau"
@@ -38,6 +38,6 @@ earlyStop:
         min_delta: 0.0
 
 loss:
-    type: "utils.LabelSmoothingCorssEntropyLoss"
-    params:
-        alpha: 0.1
+  type: "losses.CheXpertLoss"   # Perfect! Matches your new losses.py
+  params:
+    policy: "U-Ones"

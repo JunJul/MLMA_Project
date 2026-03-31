@@ -1,0 +1,44 @@
+output_dir: "experiments/ensemble"
+trained_epochs: 0
+
+data:
+    data_dir: "ensemble_data"
+    train_file: "ensemble_train_features.csv"
+    val_file: "ensemble_valid_features.csv"
+    test_file: "ensemble_valid_features.csv"
+    batch_size: 64
+
+data_agumentation:
+    type: "none"
+
+model:
+    type: "models.MultiModalMetaLearner"
+    params:
+        num_models: 3
+        num_classes: 14
+        num_meta_features: 4
+
+optimizer:
+    type: "Adam"
+    params:
+        lr : 0.001
+        weight_decay: 1.0e-4
+
+scheduler:
+    type: "ReduceLROnPlateau"
+    params:
+        mode: "min"
+        factor: 0.5
+        patience: 3
+        min_lr: 1.0e-6
+
+earlyStop:
+    type: "utils.EarlyStopping"
+    params: 
+        patience: 5
+        min_delta: 0.0
+
+loss:
+  type: "losses.CheXpertLoss"
+  params:
+    policy: "U-Ones"

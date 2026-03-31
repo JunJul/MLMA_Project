@@ -333,7 +333,7 @@ class Pipeline():
         train_len = len(self.train_loader)
         for _, data_point in tqdm(enumerate(self.train_loader), total=train_len):
              # data
-             img, y = data_point
+             img, _,  y = data_point
              img = img.to(self.device)
              y = y.to(self.device)
 
@@ -364,7 +364,7 @@ class Pipeline():
         with torch.no_grad():
             for _, data_point in tqdm(enumerate(self.val_loader), total=val_len):
                 # data
-                img, y = data_point
+                img, _,  y = data_point
                 img = img.to(self.device)
                 y = y.to(self.device)
                 
@@ -394,7 +394,7 @@ class Pipeline():
         with torch.no_grad():
             for _, data_point in tqdm(enumerate(self.test_loader), total=test_len):
                 # data
-                img, y = data_point
+                img, _, y = data_point
                 img = img.to(self.device)
                 y = y.to(self.device)
                 

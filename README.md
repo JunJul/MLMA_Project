@@ -55,6 +55,21 @@ Standard models give a single probability (e.g., "80% Pneumonia"). But is that 8
 - The Uncertainity Warning (e.g., When high uncertainty detected, specialists are needed)
 
 ### Training & Testing
+
+#### CVAE
+- Training:
+```
+python trainCVAE.py -p U-Ones
+python trainCVAE.py -p U-Zeros
+python trainCVAE.py -p U-Smooth
+```
+
+- Testing:
+```
+python testCVAE.py -c CVAE_configs.yaml -ckpt experiments/cvae/cvae-epoch=49-val_loss=105.2.ckpt
+```
+
+#### Models
 - Training:
 ```
 # Training a model at first time or continue to train a model

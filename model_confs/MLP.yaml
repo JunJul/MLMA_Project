@@ -1,4 +1,4 @@
-output_dir: "experiments/ensemble"
+output_dir: "experiments/U-Ones/ensemble"
 trained_epochs: 0
 
 data:

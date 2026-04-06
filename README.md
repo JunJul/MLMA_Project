@@ -69,7 +69,14 @@ python trainCVAE.py -p U-Smooth
 python testCVAE.py -c CVAE_configs.yaml -ckpt experiments/cvae/cvae-epoch=49-val_loss=105.2.ckpt
 ```
 
+- Generate Images
+After downloading the model, place the model in the checkpoints under the correct policy in experiments folder
+```
+python generate_dataset.py
+```
+
 #### Models
+After downloading the model, place the model in models folder under the correct policy in experiments folder
 - Training:
 ```
 # Training a model at first time or continue to train a model
@@ -89,6 +96,8 @@ You can replace -c (.\model_confs\Your Model) and -p (Your Policy)
 - [Models Without CVAE Data](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
 
 - [Models With CVAE Data](https://drive.google.com/drive/folders/1Fer3AeZOcyfBldkGkmzNcMQp1akBqKlm?usp=drive_link)
+
+- [CAVE](https://drive.google.com/drive/folders/1HC9hmv7frEWWOy_3wLgysC2p1vu88vZz?usp=drive_link)
 
 ### Summary
 

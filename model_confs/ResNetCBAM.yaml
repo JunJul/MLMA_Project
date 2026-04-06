@@ -4,10 +4,10 @@ max_epochs: 50
 
 data:
     data_dir: "CheXpert-v1.0-small"
-    train_file: "train.csv" 
+    train_file: "train_balanced.csv" 
     val_file: "valid.csv" 
     test_file: "valid.csv"
-    batch_size: 32
+    batch_size: 64
 
 data_agumentation:
     type: "none"
@@ -16,7 +16,7 @@ model:
     type: "models.ResNetCBAM"
     params:
         layers: [2, 2, 2, 2]
-        num_classes: 14         # Perfect!
+        num_classes: 14 
 
 optimizer:
     type: "Adam"
@@ -34,10 +34,10 @@ scheduler:
 earlyStop:
     type: "utils.EarlyStopping"
     params: 
-        patience: 7
+        patience: 10
         min_delta: 0.0
 
 loss:
-  type: "losses.CheXpertLoss"   # Perfect! Matches your new losses.py
+  type: "losses.CheXpertLoss"
   params:
     policy: "U-Ones"

@@ -1,22 +1,27 @@
 output_dir: "experiments/cvae"
-max_epochs: 50
+max_epochs: 200
 
 data:
     data_dir: "CheXpert-v1.0-small"
     train_file: "train.csv"
     val_file: "valid.csv"
     test_file: "valid.csv"
-    batch_size: 64  
+    batch_size: 16 
 
 model:
     type: "lightning_CVAE.CVAEModel" 
     params:
         latent_dims: 128
+        embedding_dims: 64
         n_classes: 14
         meta_dims: 3
-        learning_rate: 0.001
+        learning_rate: 0.0001
         policy: "U-Ones"
+        beta_max: 0.001
+        beta_warmup_epochs: 20
+        perceptual_weight: 0.1
+        perceptual_warmup_epochs: 5
 
 earlyStop:
     params: 
-        patience: 5
+        patience: 15

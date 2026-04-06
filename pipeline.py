@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+import torchvision.transforms as transforms
 
 import yaml
 import os
@@ -13,6 +14,7 @@ from pathlib import Path
 import json
 
 from sklearn.model_selection import train_test_split
+
 
 """
     Preprcoessing:
@@ -228,7 +230,21 @@ class Pipeline():
         test_csv = _resolve_csv_path(data_dir, test_path)
         test_df = load_image(test_csv)
 
-        train_dt, val_dt, test_dt = ImageDataset(train_df), ImageDataset(val_df), ImageDataset(test_df)
+        training_transform =  transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(10),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        
+        eval_transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+
+        train_dt, val_dt, test_dt = ImageDataset(train_df, training_transform), ImageDataset(val_df, eval_transform), ImageDataset(test_df, eval_transform)
 
         train_loader = DataLoader(train_dt, batch_size=data_conf["batch_size"], shuffle=True)
         val_loader = DataLoader(val_dt, batch_size=data_conf["batch_size"])

@@ -4,7 +4,7 @@ max_epochs: 50
 
 data:
     data_dir: "CheXpert-v1.0-small"
-    train_file: "train.csv"
+    train_file: "train_balanced.csv"
     val_file: “valid.csv”
     test_file: "valid.csv"
     batch_size: 32

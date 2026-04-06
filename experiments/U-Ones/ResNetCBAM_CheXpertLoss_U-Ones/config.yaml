@@ -1,0 +1,42 @@
+best_epoch: 12
+data:
+  batch_size: 64
+  data_dir: CheXpert-v1.0-small
+  test_file: valid.csv
+  train_file: train_balanced.csv
+  val_file: valid.csv
+data_agumentation:
+  type: none
+date: '20260404'
+earlyStop:
+  params:
+    min_delta: 0.0
+    patience: 10
+  type: utils.EarlyStopping
+loss:
+  params:
+    policy: U-Ones
+  type: losses.CheXpertLoss
+max_epochs: 50
+model:
+  params:
+    layers:
+    - 2
+    - 2
+    - 2
+    - 2
+    num_classes: 14
+  type: models.ResNetCBAM
+optimizer:
+  params:
+    lr: 0.01
+  type: Adam
+output_dir: experiments/U-Ones
+scheduler:
+  params:
+    factor: 0.5
+    min_lr: 1.0e-06
+    mode: min
+    patience: 5
+  type: ReduceLROnPlateau
+trained_epochs: 23

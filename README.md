@@ -1,10 +1,42 @@
 # CheXpert Challenge
 
-### Data
-kaggle: https://www.kaggle.com/datasets/ashery/chexpert
+Multi-label chest X-ray disease classification on the [CheXpert](https://www.kaggle.com/datasets/ashery/chexpert) dataset with CVAE-based data augmentation, attention-enhanced ResNet models, ensemble uncertainty quantification, and Grad-CAM interpretability.
 
-(Note: This is a subet of the original cheXpert dataset from standford. The full dataset can be found at: https://aimi.stanford.edu/datasets/chexpert-chest-x-rays)
+> **Note:** This project uses the small subset from Kaggle. The full dataset is available at [Stanford AIMI](https://aimi.stanford.edu/datasets/chexpert-chest-x-rays).
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Dataset](#dataset)
+- [Data Augmentation (CVAE)](#data-augmentation-cvae)
+- [Classification Models](#classification-models)
+- [Ensemble & Uncertainty](#ensemble--uncertainty)
+- [Explainability (Grad-CAM)](#explainability-grad-cam)
+- [Training & Testing](#training--testing)
+- [User Interface](#user-interface)
+- [Pretrained Models](#pretrained-models)
+
+---
+
+## Overview
+
+**Goal:** Improve chest X-ray disease classification on imbalanced CheXpert data by:
+
+1. **Addressing class imbalance** via Conditional VAE (CVAE)-generated synthetic images
+2. **Comparing attention mechanisms** (CBAM vs SE) against a standard ResNet-50 baseline
+3. **Quantifying uncertainty** via ensemble model variance for clinical safety
+4. **Providing interpretability** via Grad-CAM heatmaps and confidence scores
+
+**Workflow:**
 ```
+Data Analysis → CVAE Training → Synthetic Image Generation → Model Training
+→ Ensemble Training → Evaluation & Metrics → Uncertainty Detection → UI Deployment
+```
+
+**Target Classes (14):**
+```python
 CHEXPERT_CLASSES = [
     'No Finding', 'Enlarged Cardiomediastinum', 'Cardiomegaly', 'Lung Opacity',
     'Lung Lesion', 'Edema', 'Consolidation', 'Pneumonia', 'Atelectasis',
@@ -12,92 +44,216 @@ CHEXPERT_CLASSES = [
 ]
 ```
 
-### Prerequisites
+**Competition Tasks:** Atelectasis, Cardiomegaly, Consolidation, Edema, Pleural Effusion
+
+---
+
+## Project Structure
+
 ```
+├── analyze_distribution.py    # Analyze class distribution & imbalance in training data
+├── dataset.py                 # ImageDataset class (loads CheXpert CSV, handles labels/metadata)
+├── generate_dataset.py        # Generate synthetic X-rays from a trained CVAE checkpoint
+├── losses.py                  # CheXpertLoss with uncertain label policies (U-Ones/Zeros/Smooth/Ignore)
+├── metrics.py                 # Classification reports, ROC curves, AUROC scores
+├── pipeline.py                # Central training/evaluation orchestration (loaders, training loops, checkpointing)
+├── trainCVAE.py               # Train CVAE with PyTorch Lightning
+├── trainModels.py             # Train classification models (ResNet variants)
+├── trainMLP.py                # Train ensemble gating MLP
+├── testCVAE.py                # Evaluate CVAE reconstruction & generation quality
+├── testModels.py              # Evaluate classification models (metrics & visualization)
+├── user_interface.py          # Streamlit web app for predictions & interpretability
+├── utils.py                   # Utilities (EarlyStopping, label smoothing loss, Grad-CAM overlay)
+├── requirements.txt
+│
+├── CVAE/
+│   ├── CVAE.py                # Conditional VAE architecture (encoder + decoder)
+│   ├── lightning_CVAE.py      # PyTorch Lightning wrapper with learnable embeddings & composite loss
+│   └── perceptual_loss.py     # VGG16-based perceptual loss (relu2_2 features)
+│
+├── models/
+│   ├── ResNet50.py            # Standard ResNet-50 (baseline)
+│   ├── ResNetCBAM.py          # ResNet + Convolutional Block Attention Module
+│   ├── ResNetSE.py            # ResNet + Squeeze-and-Excitation blocks
+│   └── MLP.py                 # Ensemble gating network (MultiModalMetaLearner)
+│
+├── model_confs/               # YAML configuration files for each model
+│   ├── CVAE.yaml
+│   ├── ResNet50.yaml
+│   ├── ResNetCBAM.yaml
+│   ├── ResNetSE.yaml
+│   └── MLP.yaml
+│
+├── CheXpert-v1.0-small/       # Dataset (download from Kaggle)
+│   ├── train.csv
+│   ├── train_balanced.csv     # Oversampled/CVAE-augmented training CSV
+│   ├── valid.csv
+│   ├── train/
+│   └── valid/
+│
+├── experiments/               # Training outputs (checkpoints, logs)
+│   ├── cvae/                  # CVAE experiments per policy
+│   └── U-Ones/                # Classification model experiments
+│
+└── EDA/                       # Exploratory data analysis notebooks/outputs
+```
+
+---
+
+## Prerequisites
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Project
+**Key dependencies:** `torch`, `torchvision`, `pytorch-lightning`, `pandas`, `numpy`, `scikit-learn`, `torchmetrics`, `streamlit`, `PyYAML`, `pytorch-grad-cam`
 
-#### Data Agumentation
-1. [CVAE](https://arxiv.org/abs/1908.09008#:~:text=Prediction%20of%20future%20states%20of,results%20across%20different%20evaluation%20metrics.)
-    - Code: https://medium.com/data-science/conditional-variational-autoencoders-with-learnable-conditional-embeddings-e22ee5359a2a
-    - Purpose:
-        - The Complexity: Implement a VQ-VAE (Vector Quantized-VAE) or a Conditional VAE (C-VAE). This allows you to generate images specific to a class (e.g., "Generate a lung with Pneumonia") rather than random samples.
-        - The Validation: Your VAE specialist shouldn't just generate images; they must prove they are statistically similar to the real ones using FID (Fréchet Inception Distance) or t-SNE plots.
-        - Metric Goal: Show that adding VAE data actually improves the F1-Score of the minority classes compared to simple oversampling.
+---
 
-#### Models
-1. [ResNet50](https://arxiv.org/abs/1512.03385)
-2. [ResNet-SE](https://arxiv.org/pdf/1709.01507)
-    - Code: https://apxml.com/courses/cnns-for-computer-vision/chapter-5-attention-transformers-vision/implementing-attention-blocks-practice
-3. [ResNet-CBAM](https://arxiv.org/abs/1807.06521)
-4. Ensemble Model (1 + 2 + 3):
-    - Transfer learning
-    - Pass validation images through all three to get their predicted probabilities ($3 \text{ models} \times 3 \text{ classes} = 9 \text{ features}$)
-    - Train a gating network (a simple MLP) to learns which classifier to trust for specific types of images and utilize the idea of Monte Carlo Method to evaluate the uncertian of a prediction
+## Dataset
 
-#### Monte Carlo Method
-Standard models give a single probability (e.g., "80% Pneumonia"). But is that 80% because the model is confident, or is it a random guess due to noisy data?
-- Idea: Calculate the variance (standard deviation) between the probabilities outputted by the three different models. This achieves the exact same goal as MC Dropout (flagging images the AI is unsure about) without needing to alter the pre-trained architectures.
-- The Output: If the 20 results are all similar, the model is "Certain." If they vary wildly, the model is "Uncertain."
-- The Clinical Value: In a real hospital, an "Uncertain" flag would trigger an automatic referral to a human radiologist.
+The CheXpert dataset contains chest X-ray images with 14 multi-label observations. Labels can be **positive (1)**, **negative (0)**, or **uncertain (-1)**. Uncertain labels are handled via configurable policies during training:
 
-##### Grad-CAM (XAI)
-- Source: https://github.com/jacobgil/pytorch-grad-cam
-- Focus on interpretability of the computer vision and highlight the area where the model is looking for on an image
+| Policy       | Uncertain (-1) mapped to |
+|--------------|--------------------------|
+| **U-Ones**   | 1 (positive)             |
+| **U-Zeros**  | 0 (negative)             |
+| **U-Smooth** | 0.55                     |
+| **U-Ignore** | NaN (excluded from loss) |
 
-#### User Interface
-- Source: https://streamlit.io/
-- A Predicted Label
-- Present how the model is looking into the image
-- The Confidence Score (Enemsble Model)
-- The Uncertainity Warning (e.g., When high uncertainty detected, specialists are needed)
+Images are resized to 224×224 RGB. Metadata (age, sex, view orientation) is normalized and used as auxiliary input.
 
-### Training & Testing
+---
 
-#### CVAE
-- Training:
-```
+## Data Augmentation (CVAE)
+
+A **Conditional Variational Autoencoder** generates disease-specific synthetic X-ray images to address class imbalance.
+
+- **Encoder:** CNN (3×224×224 → 256 channels @ 14×14) + disease/metadata embeddings → latent space (μ, log σ²)
+- **Decoder:** Latent z → deconvolution upsampling → reconstructed image (3×224×224)
+- **Latent dim:** 128 | **Embedding dim:** 64
+- **Loss:** MSE reconstruction + SSIM (0.3) + β-KL (warmup to 0.001) + VGG16 perceptual loss (0.1)
+- **Free Bits KL** (0.5 nats/dim) prevents posterior collapse
+
+**References:**
+- [Conditional VAE](https://arxiv.org/abs/1908.09008)
+- [Learnable Conditional Embeddings](https://medium.com/data-science/conditional-variational-autoencoders-with-learnable-conditional-embeddings-e22ee5359a2a)
+
+---
+
+## Classification Models
+
+### 1. [ResNet-50](https://arxiv.org/abs/1512.03385) (Baseline)
+Standard ResNet-50 with Bottleneck blocks [3, 4, 6, 3] → 14 class logits.
+
+### 2. [ResNet-SE](https://arxiv.org/pdf/1709.01507) (Squeeze-and-Excitation)
+ResNet with SE blocks: Global avg pool → FC → ReLU → FC → Sigmoid → channel recalibration.
+- [Implementation reference](https://apxml.com/courses/cnns-for-computer-vision/chapter-5-attention-transformers-vision/implementing-attention-blocks-practice)
+
+### 3. [ResNet-CBAM](https://arxiv.org/abs/1807.06521) (Convolutional Block Attention Module)
+ResNet with CBAM: channel attention (avg+max pool → shared MLP) + spatial attention (concat → conv → sigmoid).
+
+### 4. Ensemble (MLP Gating Network)
+- Concatenates predictions from all 3 models + patient metadata → $3 \times 14 + 4 = 46$ input features
+- Architecture: 46 → 128 (BN, ReLU, Dropout 0.3) → 64 (BN, ReLU, Dropout 0.3) → 14 logits
+- Learns which classifier to trust for specific image types
+
+---
+
+## Ensemble & Uncertainty
+
+Standard models give a single probability (e.g., "80% Pneumonia"), but this doesn't indicate whether the model is confident or guessing.
+
+**Approach:** Calculate variance (standard deviation) across predictions from the 3 ResNet models — achieving the same goal as MC Dropout without altering pre-trained architectures.
+
+- **Low variance** → model is **certain**
+- **High variance** → model is **uncertain** → flag for radiologist review
+
+**Clinical Value:** In a real hospital, an "Uncertain" flag triggers automatic referral to a human radiologist.
+
+---
+
+## Explainability (Grad-CAM)
+
+[Grad-CAM](https://github.com/jacobgil/pytorch-grad-cam) heatmaps highlight the image regions driving each prediction, providing interpretability for clinical decision-making.
+
+---
+
+## Training & Testing
+
+### CVAE
+
+**Train** (one command per uncertainty policy):
+```bash
 python trainCVAE.py -p U-Ones
 python trainCVAE.py -p U-Zeros
 python trainCVAE.py -p U-Smooth
 ```
 
-- Testing:
-```
-python testCVAE.py -c CVAE_configs.yaml -ckpt experiments/cvae/cvae-epoch=49-val_loss=105.2.ckpt
-```
-
-- Generate Images
-After downloading the model, place the model in the checkpoints under the correct policy in experiments folder
-```
-python generate_dataset.py
+**Test:**
+```bash
+python testCVAE.py -c CVAE_configs.yaml -ckpt experiments/cvae/CVAE_U-Ones/lightning_logs/version_1/checkpoints/<checkpoint>.ckpt
 ```
 
-#### Models
-After downloading the model, place the model in models folder under the correct policy in experiments folder
-- Training:
-```
-# Training a model at first time or continue to train a model
-python .\trainModels.py -c .\model_confs\ResNetCBAM.yaml -p U-Ones
+**Generate synthetic images:**
+```bash
+python generate_dataset.py --checkpoint "experiments/cvae/CVAE_U-Zeros/lightning_logs/version_0/checkpoints/<checkpoint>.ckpt"
 ```
 
-- Testing:
-```
-# Automatically load your previsouly trained model
-python .\testModels.py -c .\model_confs\ResNetCBAM.yaml -p U-Ones
+### Classification Models
+
+**Train** (specify config and policy):
+```bash
+python trainModels.py -c model_confs/ResNet50.yaml -p U-Ones
+python trainModels.py -c model_confs/ResNetCBAM.yaml -p U-Ones
+python trainModels.py -c model_confs/ResNetSE.yaml -p U-Ones
 ```
 
-You can replace -c (.\model_confs\Your Model) and -p (Your Policy)
+**Test:**
+```bash
+python testModels.py -c model_confs/ResNetCBAM.yaml -p U-Ones
+```
 
-### Pretrained Models
+Replace `-c` with any model config and `-p` with any policy (`U-Ones`, `U-Zeros`, `U-Smooth`).
+
+### Ensemble MLP
+
+```bash
+python trainMLP.py -c model_confs/MLP.yaml -p U-Ones
+```
+
+### Analyze Class Distribution
+
+```bash
+python analyze_distribution.py
+```
+
+---
+
+## User Interface
+
+A [Streamlit](https://streamlit.io/) web app for clinical prediction and interpretation:
+
+```bash
+streamlit run user_interface.py
+```
+
+**Features:**
+- Upload a chest X-ray image → multi-label disease prediction
+- Ensemble confidence scores
+- Uncertainty warning (flags cases for specialist review)
+- Grad-CAM heatmap overlay (selectable model)
+- Configurable uncertainty threshold and display options
+
+---
+
+## Pretrained Models
 
 - [Models Without CVAE Data](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
-
 - [Models With CVAE Data](https://drive.google.com/drive/folders/1Fer3AeZOcyfBldkGkmzNcMQp1akBqKlm?usp=drive_link)
+- [CVAE Checkpoints](https://drive.google.com/drive/folders/1HC9hmv7frEWWOy_3wLgysC2p1vu88vZz?usp=drive_link)
 
-- [CAVE](https://drive.google.com/drive/folders/1HC9hmv7frEWWOy_3wLgysC2p1vu88vZz?usp=drive_link)
+Place downloaded model checkpoints under the appropriate `experiments/` subdirectory.
 
 ### Summary
 

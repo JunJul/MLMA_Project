@@ -1,4 +1,4 @@
-output_dir: "experiments/U-Ones/exp2"
+output_dir: "experiments/U-Zeros/exp2"
 trained_epochs: 0
 max_epochs: 50
 

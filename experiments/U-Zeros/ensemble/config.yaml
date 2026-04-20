@@ -1,0 +1,44 @@
+best_epoch: 5
+data:
+  batch_size: 64
+  data_dir: ensemble_data
+  test_file: ensemble_U_Zeros_valid_features.csv
+  train_file: ensemble_U_Zeros_train_features.csv
+  val_file: ensemble_U_Zeros_valid_features.csv
+data_agumentation:
+  type: none
+date: '20260420'
+earlyStop:
+  params:
+    min_delta: 0.0
+    patience: 5
+  type: utils.EarlyStopping
+loss:
+  params:
+    policy: U-Zeros
+  type: losses.CheXpertLoss
+max_epochs: 50
+model:
+  params:
+    num_classes: 14
+    num_meta_features: 3
+    num_models: 3
+  type: models.MLP
+optimizer:
+  params:
+    lr: 0.01
+    weight_decay: 1.0e-05
+  type: Adam
+output_dir: experiments/U-Zeros/ensemble
+pca:
+  enabled: true
+  n_components: 10
+  variance_explained: 0.9573220014572144
+scheduler:
+  params:
+    factor: 0.5
+    min_lr: 1.0e-06
+    mode: min
+    patience: 3
+  type: ReduceLROnPlateau
+trained_epochs: 10

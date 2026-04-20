@@ -12,10 +12,9 @@ Multi-label chest X-ray disease classification on the [CheXpert](https://www.kag
 - [Dataset](#dataset)
 - [Data Augmentation (CVAE)](#data-augmentation-cvae)
 - [Classification Models](#classification-models)
-- [Ensemble & Uncertainty](#ensemble--uncertainty)
-- [Explainability (Grad-CAM)](#explainability-grad-cam)
+- [PCA + Ensemble](#pca--ensemble)
+- [Weighted Ensemble](#weighted-ensemble)
 - [Training & Testing](#training--testing)
-- [User Interface](#user-interface)
 - [Pretrained Models](#pretrained-models)
 
 ---
@@ -64,11 +63,11 @@ CHEXPERT_CLASSES = [
 ├── testModels.py              # Evaluate classification models (metrics & visualization)
 ├── user_interface.py          # Streamlit web app for predictions & interpretability
 ├── utils.py                   # Utilities (EarlyStopping, label smoothing loss, Grad-CAM overlay)
-├── requirements.txt
 │
 ├── CVAE/
 │   ├── CVAE.py                # Conditional VAE architecture (encoder + decoder)
-│   ├── lightning_CVAE.py      # PyTorch Lightning wrapper with learnable embeddings & composite loss
+│   ├── lightning_CVAE.py      # PyTorch Lightning wrapper with learnable embeddings & composite loss├── requirements.txt
+
 │   └── perceptual_loss.py     # VGG16-based perceptual loss (relu2_2 features)
 │
 ├── models/
@@ -106,7 +105,7 @@ CHEXPERT_CLASSES = [
 pip install -r requirements.txt
 ```
 
-**Key dependencies:** `torch`, `torchvision`, `pytorch-lightning`, `pandas`, `numpy`, `scikit-learn`, `torchmetrics`, `streamlit`, `PyYAML`, `pytorch-grad-cam`
+**Key dependencies:** `torch`, `torchvision`, `pytorch-lightning`, `pandas`, `numpy`, `scikit-learn`, `torchmetrics`, `PyYAML`,
 
 ---
 
@@ -160,24 +159,16 @@ ResNet with CBAM: channel attention (avg+max pool → shared MLP) + spatial atte
 
 ---
 
-## Ensemble & Uncertainty
+## PCA + Ensemble
 
-Standard models give a single probability (e.g., "80% Pneumonia"), but this doesn't indicate whether the model is confident or guessing.
-
-**Approach:** Calculate variance (standard deviation) across predictions from the 3 ResNet models — achieving the same goal as MC Dropout without altering pre-trained architectures.
-
-- **Low variance** → model is **certain**
-- **High variance** → model is **uncertain** → flag for radiologist review
-
-**Clinical Value:** In a real hospital, an "Uncertain" flag triggers automatic referral to a human radiologist.
+Standard models give a single probability, but this doesn't indicate whether the model is confident or guessing. Use the probability as output and integrate this into our dataset to train a MLP. Since 14 * 3 = 42 features, so we have to add 42 dimensions to the features. In order to lower the dimension of data, we Leverge PCA to capture the max variance in the dataset. Then, use the best n_components to train our MLP.
 
 ---
 
-## Explainability (Grad-CAM)
+## Weighted Ensemble
+According to the performance of each class from each model, assgin a classification weight to each class of each model to make a final decision on a sample.
 
-[Grad-CAM](https://github.com/jacobgil/pytorch-grad-cam) heatmaps highlight the image regions driving each prediction, providing interpretability for clinical decision-making.
 
----
 
 ## Training & Testing
 
@@ -216,10 +207,17 @@ python testModels.py -c model_confs/ResNetCBAM.yaml -p U-Ones
 
 Replace `-c` with any model config and `-p` with any policy (`U-Ones`, `U-Zeros`, `U-Smooth`).
 
-### Ensemble MLP
+### PCA Ensemble MLP
 
 ```bash
 python trainMLP.py -c model_confs/MLP.yaml -p U-Ones
+python testMLP.py
+```
+
+### Weighted Ensemble MLP
+```bash
+python weightedEnsemble.py -c model_confs/MLP.yaml -p U-Ones
+python testWeightedEnsemble.py
 ```
 
 ### Analyze Class Distribution
@@ -227,23 +225,6 @@ python trainMLP.py -c model_confs/MLP.yaml -p U-Ones
 ```bash
 python analyze_distribution.py
 ```
-
----
-
-## User Interface
-
-A [Streamlit](https://streamlit.io/) web app for clinical prediction and interpretation:
-
-```bash
-streamlit run user_interface.py
-```
-
-**Features:**
-- Upload a chest X-ray image → multi-label disease prediction
-- Ensemble confidence scores
-- Uncertainty warning (flags cases for specialist review)
-- Grad-CAM heatmap overlay (selectable model)
-- Configurable uncertainty threshold and display options
 
 ---
 

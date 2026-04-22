@@ -59,6 +59,8 @@ CHEXPERT_CLASSES = [
 ├── trainCVAE.py               # Train CVAE with PyTorch Lightning
 ├── trainModels.py             # Train classification models (ResNet variants)
 ├── trainMLP.py                # Train ensemble gating MLP
+├── trainWeightedEnsemble      # Train weighted ensemble model
+├── testWeightedEnsemble       # Evaluate weighted ensemble model
 ├── testCVAE.py                # Evaluate CVAE reconstruction & generation quality
 ├── testModels.py              # Evaluate classification models (metrics & visualization)
 ├── user_interface.py          # Streamlit web app for predictions & interpretability
@@ -92,7 +94,8 @@ CHEXPERT_CLASSES = [
 │
 ├── experiments/               # Training outputs (checkpoints, logs)
 │   ├── cvae/                  # CVAE experiments per policy
-│   └── U-Ones/                # Classification model experiments
+│   └── U-Ones/                # Classification model experiments of U-Ones policy
+|   |__ U-Zeros/               # Classification model experiments of U-Zeros policy
 │
 └── EDA/                       # Exploratory data analysis notebooks/outputs
 ```
@@ -170,7 +173,15 @@ According to the performance of each class from each model, assgin a classificat
 
 
 
+
+
 ## Training & Testing
+
+### Analyze Class Distribution
+
+```bash
+python analyze_distribution.py
+```
 
 ### CVAE
 
@@ -220,23 +231,13 @@ python weightedEnsemble.py -c model_confs/MLP.yaml -p U-Ones
 python testWeightedEnsemble.py
 ```
 
-### Analyze Class Distribution
-
-```bash
-python analyze_distribution.py
-```
-
 ---
 
 ## Pretrained Models
 
-- [Models Without CVAE Data](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
-- [Models With CVAE Data](https://drive.google.com/drive/folders/1Fer3AeZOcyfBldkGkmzNcMQp1akBqKlm?usp=drive_link)
-- [CVAE Checkpoints](https://drive.google.com/drive/folders/1HC9hmv7frEWWOy_3wLgysC2p1vu88vZz?usp=drive_link)
+- [experiments](https://drive.google.com/drive/folders/1PqiQ_yJkTNa8mqyL2yFbUux5TuqPifht?usp=sharing)
 
-Place downloaded model checkpoints under the appropriate `experiments/` subdirectory.
-
-### Summary
+Place downloaded `experiments/` which includes all the models we have trained in this project.
 
 
 

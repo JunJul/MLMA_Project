@@ -24,9 +24,8 @@ Multi-label chest X-ray disease classification on the [CheXpert](https://www.kag
 **Goal:** Improve chest X-ray disease classification on imbalanced CheXpert data by:
 
 1. **Addressing class imbalance** via Conditional VAE (CVAE)-generated synthetic images
-2. **Comparing attention mechanisms** (CBAM vs SE) against a standard ResNet-50 baseline
-3. **Quantifying uncertainty** via ensemble model variance for clinical safety
-4. **Providing interpretability** via Grad-CAM heatmaps and confidence scores
+2. **Comparing CNN with attention Models** (CBAM vs SE) against a standard ResNet-50 baseline
+3. **Ensemble + weighted Ensemble Model** combine performance of three different CNNs
 
 **Workflow:**
 ```
@@ -170,9 +169,6 @@ Standard models give a single probability, but this doesn't indicate whether the
 
 ## Weighted Ensemble
 According to the performance of each class from each model, assgin a classification weight to each class of each model to make a final decision on a sample.
-
-
-
 
 
 ## Training & Testing

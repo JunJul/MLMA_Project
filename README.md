@@ -30,7 +30,7 @@ Multi-label chest X-ray disease classification on the [CheXpert](https://www.kag
 **Workflow:**
 ```
 Data Analysis → CVAE Training → Synthetic Image Generation → Model Training
-→ Ensemble Training → Evaluation & Metrics → Uncertainty Detection → UI Deployment
+→ Ensemble Training → Evaluation & Metrics → Report to UI Interface
 ```
 
 **Target Classes (14):**
@@ -62,7 +62,7 @@ CHEXPERT_CLASSES = [
 ├── testWeightedEnsemble       # Evaluate weighted ensemble model
 ├── testCVAE.py                # Evaluate CVAE reconstruction & generation quality
 ├── testModels.py              # Evaluate classification models (metrics & visualization)
-├── user_interface.py          # Streamlit web app for predictions & interpretability
+├── user_interface.py          # Streamlit web app for predictions & interpretability (currently not available to use)
 ├── utils.py                   # Utilities (EarlyStopping, label smoothing loss, Grad-CAM overlay)
 │
 ├── CVAE/
@@ -186,11 +186,15 @@ python analyze_distribution.py
 python trainCVAE.py -p U-Ones
 python trainCVAE.py -p U-Zeros
 python trainCVAE.py -p U-Smooth
+python trainCAVE.py -p U-Ignore
 ```
 
 **Test:**
 ```bash
-python testCVAE.py -c CVAE_configs.yaml -ckpt experiments/cvae/CVAE_U-Ones/lightning_logs/version_1/checkpoints/<checkpoint>.ckpt
+python testCVAE.py -c CVAE.yaml -P U-Ones
+python testCVAE.py -c CVAE.yaml -P U-Zeros
+python testCVAE.py -c CVAE.yaml -P U-Smooth
+python testCVAE.py -c CVAE.yaml -p U-Ignore
 ```
 
 **Generate synthetic images:**

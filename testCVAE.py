@@ -13,6 +13,8 @@ from CVAE.lightning_CVAE import CVAEModel
 
 
 def load_config(config_path):
+    if not os.path.dirname(config_path):
+        config_path = os.path.join("model_confs", config_path)
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 

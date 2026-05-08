@@ -82,7 +82,7 @@ def main():
     parser = argparse.ArgumentParser(description="AUROC-weighted ensemble of 3 models")
     parser.add_argument("--val-csv", type=str, default="CheXpert-v1.0-small/valid.csv",
                         help="Validation CSV to compute weights from")
-    parser.add_argument("--test-csv", type=str, default="CheXpert-v1.0-small/valid.csv",
+    parser.add_argument("--test-csv", type=str, default="CheXpert-v1.0-small/test.csv",
                         help="Test CSV to evaluate on")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--output-dir", type=str, default="experiments/U-Zeros/weighted_ensemble")
@@ -153,10 +153,6 @@ def main():
 
     test_preds = np.stack(test_preds_list)  # [3, N, 14]
 
-    # Weighted combination: for each class, weight each model's prediction by its AUROC weight
-    # weights shape: [3, 14] -> [3, 1, 14] for broadcasting with [3, N, 14]
-    weighted_preds = (test_preds * weights[:, np.newaxis, :]).sum(axis=0)  # [N, 14]
-
     # Save results
     output_dir = Path(args.output_dir)
     os.makedirs(output_dir, exist_ok=True)
@@ -169,12 +165,26 @@ def main():
         }
     with open(output_dir / "ensemble_weights.yaml", "w") as f:
         yaml.dump(weights_dict, f, default_flow_style=False)
-
     print(f"\nWeights saved to {output_dir / 'ensemble_weights.yaml'}")
 
-    # Classification report
-    model_name = "Weighted_Ensemble"
-    classification_result(y_true_test, weighted_preds, model_name, output_dir)
+    # --- Majority Vote Ensemble ---
+    print("\n=== Majority Vote Ensemble ===")
+    # Threshold each model at 0.5 to get binary predictions, then take majority vote
+    binary_preds = (test_preds >= 0.5).astype(int)  # [3, N, 14]
+    # Sum votes across models; majority if > num_models/2
+    vote_sum = binary_preds.sum(axis=0)  # [N, 14]
+    majority_threshold = len(models) / 2.0
+    majority_votes = (vote_sum > majority_threshold).astype(int)  # [N, 14]
+    # Use vote fraction as a soft probability for AUROC
+    majority_probs = vote_sum / len(models)  # [N, 14]
+    classification_result(y_true_test, majority_probs, "Majority_Vote_Ensemble", output_dir)
+
+    # --- Weighted Ensemble ---
+    print("\n=== Weighted Ensemble (AUROC weights from validation) ===")
+    # Weighted combination: for each class, weight each model's prediction by its AUROC weight
+    # weights shape: [3, 14] -> [3, 1, 14] for broadcasting with [3, N, 14]
+    weighted_preds = (test_preds * weights[:, np.newaxis, :]).sum(axis=0)  # [N, 14]
+    classification_result(y_true_test, weighted_preds, "Weighted_Ensemble", output_dir)
 
     print(f"\nResults saved to {output_dir}")
 

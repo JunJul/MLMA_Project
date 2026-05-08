@@ -52,7 +52,8 @@ class ImageDataset(Dataset):
             x = transforms.ToTensor()(img)
         
         # Meta data: age, sex, view
-        age = float(row['Age']) / 100.0 if pd.notna(row['Age']) else 0.5
+        age_val = row.get('Age')
+        age = float(age_val) / 100.0 if pd.notna(age_val) else 0.5
         sex = 1.0 if row.get('Sex') == 'Female' else 0.0
         
         # View encoding: 0=Lateral, 0.5=PA, 1.0=AP

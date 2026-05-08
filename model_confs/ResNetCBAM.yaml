@@ -1,12 +1,12 @@
-output_dir: "experiments/U-Zeros/exp2"
+output_dir: "experiments/U-Smooth/exp2"
 trained_epochs: 0
 max_epochs: 50
 
 data:
     data_dir: "CheXpert-v1.0-small"
-    train_file: "train_balanced.csv" 
+    train_file: "train.csv" 
     val_file: "valid.csv" 
-    test_file: "valid.csv"
+    test_file: "test.csv"
     batch_size: 64
 
 data_agumentation:
@@ -40,4 +40,4 @@ earlyStop:
 loss:
   type: "losses.CheXpertLoss"
   params:
-    policy: "U-Ones"
+    policy: "U-Smooth"

@@ -19,9 +19,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--policy",
         type=str,
-        choices=["U-Ones", "U-Zeros", "U-Smooth"],
+        choices=["U-Ones", "U-Zeros", "U-Smooth", "U-Ignore"],
         default=None,
-        help="Override the CheXpert loss policy (U-Ones, U-Zeros, or U-Smooth)."
+        help="Override the CheXpert loss policy (U-Ones, U-Zeros, U-Smooth, U-Ignore)."
     )
     
     args = parser.parse_args()

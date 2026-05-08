@@ -2,9 +2,9 @@ best_epoch: 7
 data:
   batch_size: 32
   data_dir: CheXpert-v1.0-small
-  test_file: valid.csv
+  test_file: test.csv
   train_file: train_balanced.csv
-  val_file: "\u201Cvalid.csv\u201D"
+  val_file: valid.csv
 data_agumentation:
   type: none
 date: '20260414'

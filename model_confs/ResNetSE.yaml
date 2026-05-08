@@ -6,7 +6,7 @@ data:
     data_dir: "CheXpert-v1.0-small"
     train_file: "train_balanced.csv"
     val_file: “valid.csv”
-    test_file: "valid.csv"
+    test_file: "test.csv"
     batch_size: 32
 
 data_agumentation:
@@ -41,4 +41,4 @@ earlyStop:
 loss:
   type: "losses.CheXpertLoss"
   params:
-    policy: "U-Ones"
+    policy: "U-Zeros"

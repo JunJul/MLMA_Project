@@ -5,7 +5,7 @@ data:
     data_dir: "CheXpert-v1.0-small"
     train_file: "train.csv"
     val_file: "valid.csv"
-    test_file: "valid.csv"
+    test_file: "test.csv"
     batch_size: 16 
 
 model:
@@ -16,7 +16,7 @@ model:
         n_classes: 14
         meta_dims: 3
         learning_rate: 0.0001
-        policy: "U-Zeros"
+        policy: "U-Ones"
         beta_max: 0.001
         beta_warmup_epochs: 5
         perceptual_weight: 0.1

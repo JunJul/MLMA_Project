@@ -1,0 +1,50 @@
+                            precision    recall  f1-score   support
+
+                No Finding       0.67      0.41      0.51       109
+Enlarged Cardiomediastinum       1.00      0.00      0.01       298
+              Cardiomegaly       0.93      0.16      0.27       175
+              Lung Opacity       0.83      0.70      0.76       310
+               Lung Lesion       0.00      0.00      0.00        14
+                     Edema       0.68      0.46      0.55        85
+             Consolidation       1.00      0.06      0.11        35
+                 Pneumonia       0.00      0.00      0.00        14
+               Atelectasis       0.80      0.04      0.09       178
+              Pneumothorax       0.50      0.10      0.17        10
+          Pleural Effusion       0.57      0.92      0.70       120
+             Pleural Other       0.00      0.00      0.00         8
+                  Fracture       0.00      0.00      0.00         6
+           Support Devices       0.86      0.83      0.84       315
+
+                 micro avg       0.77      0.42      0.55      1677
+                 macro avg       0.56      0.26      0.29      1677
+              weighted avg       0.82      0.42      0.45      1677
+               samples avg       0.55      0.40      0.43      1677
+
+
+--- All-Task AUROC Scores ---
+                         No Finding: 0.8903
+         Enlarged Cardiomediastinum: 0.6180
+                       Cardiomegaly: 0.8750
+                       Lung Opacity: 0.8930
+                        Lung Lesion: 0.8164
+                              Edema: 0.9043
+                      Consolidation: 0.9029
+                          Pneumonia: 0.7550
+                        Atelectasis: 0.8128
+                       Pneumothorax: 0.7839
+                   Pleural Effusion: 0.9525
+                      Pleural Other: 0.8570
+                           Fracture: 0.5806
+                    Support Devices: 0.9311
+--------------------------------------------------
+                Mean All-Task AUROC: 0.8266
+
+
+--- Stanford Competition AUROC Scores ---
+         Atelectasis: 0.8128
+        Cardiomegaly: 0.8750
+       Consolidation: 0.9029
+               Edema: 0.9043
+    Pleural Effusion: 0.9525
+------------------------------
+Mean Competition AUROC: 0.8895

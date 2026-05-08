@@ -2,7 +2,7 @@ best_epoch: 15
 data:
   batch_size: 32
   data_dir: CheXpert-v1.0-small
-  test_file: valid.csv
+  test_file: test.csv
   train_file: train_balanced.csv
   val_file: valid.csv
 data_agumentation:

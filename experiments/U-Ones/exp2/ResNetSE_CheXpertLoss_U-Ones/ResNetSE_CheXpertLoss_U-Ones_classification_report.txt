@@ -1,31 +1,50 @@
                             precision    recall  f1-score   support
 
-                No Finding       0.64      0.47      0.55        38
-Enlarged Cardiomediastinum       0.00      0.00      0.00       109
-              Cardiomegaly       0.82      0.21      0.33        68
-              Lung Opacity       0.90      0.67      0.77       126
-               Lung Lesion       0.00      0.00      0.00         1
-                     Edema       0.65      0.53      0.59        45
-             Consolidation       0.00      0.00      0.00        33
-                 Pneumonia       0.00      0.00      0.00         8
-               Atelectasis       0.74      0.35      0.47        80
-              Pneumothorax       0.00      0.00      0.00         8
-          Pleural Effusion       0.80      0.73      0.77        67
-             Pleural Other       0.00      0.00      0.00         1
-                  Fracture       0.00      0.00      0.00         0
-           Support Devices       0.78      0.59      0.67       107
+                No Finding       0.58      0.56      0.57       109
+Enlarged Cardiomediastinum       0.00      0.00      0.00       298
+              Cardiomegaly       0.91      0.24      0.38       175
+              Lung Opacity       0.93      0.61      0.74       310
+               Lung Lesion       0.00      0.00      0.00        14
+                     Edema       0.54      0.51      0.52        85
+             Consolidation       0.00      0.00      0.00        35
+                 Pneumonia       0.00      0.00      0.00        14
+               Atelectasis       0.68      0.32      0.44       178
+              Pneumothorax       0.00      0.00      0.00        10
+          Pleural Effusion       0.59      0.87      0.70       120
+             Pleural Other       0.00      0.00      0.00         8
+                  Fracture       0.00      0.00      0.00         6
+           Support Devices       0.89      0.66      0.76       315
 
-                 micro avg       0.78      0.41      0.53       691
-                 macro avg       0.38      0.25      0.30       691
-              weighted avg       0.61      0.41      0.47       691
-               samples avg       0.58      0.39      0.44       691
+                 micro avg       0.76      0.42      0.54      1677
+                 macro avg       0.37      0.27      0.29      1677
+              weighted avg       0.61      0.42      0.48      1677
+               samples avg       0.53      0.38      0.42      1677
+
+
+--- All-Task AUROC Scores ---
+                         No Finding: 0.8950
+         Enlarged Cardiomediastinum: 0.6823
+                       Cardiomegaly: 0.8937
+                       Lung Opacity: 0.9052
+                        Lung Lesion: 0.7901
+                              Edema: 0.9021
+                      Consolidation: 0.8156
+                          Pneumonia: 0.7466
+                        Atelectasis: 0.8517
+                       Pneumothorax: 0.7670
+                   Pleural Effusion: 0.9424
+                      Pleural Other: 0.9532
+                           Fracture: 0.6146
+                    Support Devices: 0.8836
+--------------------------------------------------
+                Mean All-Task AUROC: 0.8316
 
 
 --- Stanford Competition AUROC Scores ---
-         Atelectasis: 0.8588
-        Cardiomegaly: 0.8323
-       Consolidation: 0.8869
-               Edema: 0.8907
-    Pleural Effusion: 0.9189
+         Atelectasis: 0.8517
+        Cardiomegaly: 0.8937
+       Consolidation: 0.8156
+               Edema: 0.9021
+    Pleural Effusion: 0.9424
 ------------------------------
-Mean Competition AUROC: 0.8775
+Mean Competition AUROC: 0.8811
